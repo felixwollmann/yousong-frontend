@@ -1,19 +1,40 @@
 <script setup>
-import { ref, useTemplateRef } from 'vue'
+import { ref, useTemplateRef, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import SongCard from '@/components/SongCard.vue'
+
+const route = useRoute()
+const router = useRouter()
+
+const data = ref()
+
+const pageNum = computed(() => Number(route.query.page) || 0)
+
+const canGoBackwards = computed(() => !data.value.first)
+const canGoForwards = computed(() => !data.value.last)
+const lastPage = computed(() => data.value.totalPages - 1)
+
+async function fetchSongs() {
+  // console.log(`Fetching for pageNum: ${pageNum.value}`)
+  const responseData = await (
+    await fetch(`http://localhost:8080/api/songs?page=${pageNum.value}`)
+  ).json()
+  data.value = responseData
+  // console.log(data.value)
+  // console.log(songs.value)
+}
 
 /** @type Ref<{id: number, title: string, artist?: string, genre?: string, length?: number}[]> */
-const songs = ref(await (await fetch('http://localhost:8080/api/songs')).json())
+const songs = computed(() => data.value.content)
 
-async function refetch() {
-  songs.value = await (await fetch('http://localhost:8080/api/songs')).json()
-}
+await fetchSongs()
+
+watch(pageNum, fetchSongs)
 
 async function deleteSong(song) {
   await fetch(`http://localhost:8080/api/songs/${song.id}`, { method: 'DELETE' })
-  refetch()
+  fetchSongs()
 }
-
-import SongCard from '@/components/SongCard.vue'
 
 const dialog = useTemplateRef('dialog')
 
@@ -57,7 +78,7 @@ async function saveOrEditSong() {
   length.value = ''
   editingId.value = null
 
-  await refetch()
+  await fetchSongs()
   alert('Song saved successfully')
 }
 
@@ -94,6 +115,23 @@ const length = ref(0)
     <button class="fixed right-10 bottom-10 bg-blue-200" @click="openDialogForNewSong">
       Add a song
     </button>
+    <div
+      class="flex mt-4 gap-4 *:bg-blue-600 disabled:*:bg-gray-300 *:px-2 *:py-1 *:rounded *:text-white"
+    >
+      <button :disabled="!canGoBackwards" @click="router.push({ query: { page: 0 } })">
+        First
+      </button>
+      <button :disabled="!canGoBackwards" @click="router.push({ query: { page: pageNum - 1 } })">
+        Previous
+      </button>
+      <p class="!bg-transparent !text-black">{{ pageNum + 1 }} of {{ lastPage + 1 }}</p>
+      <button :disabled="!canGoForwards" @click="router.push({ query: { page: pageNum + 1 } })">
+        Next
+      </button>
+      <button :disabled="!canGoForwards" @click="router.push({ query: { page: lastPage } })">
+        Last
+      </button>
+    </div>
   </main>
   <dialog class="p-4 rounded" ref="dialog">
     <div class="flex flex-col gap-2">
