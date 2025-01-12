@@ -10,9 +10,6 @@ const data = ref()
 const selectedGenres = ref(new Set())
 const editingSelectedGenre = ref('')
 
-// v-model="editingSelectedGenre"
-// @keydown.enter="addSelectedGenre(editingSelectedGenre)"
-
 function addSelectedGenre(genre) {
   selectedGenres.value.add(genre)
   editingSelectedGenre.value = ''
@@ -34,8 +31,6 @@ async function fetchSongs() {
     )
   ).json()
   data.value = responseData
-  // console.log(data.value)
-  // console.log(songs.value)
 }
 
 /** @type Ref<{id: number, title: string, artist?: string, genre?: string, length?: number}[]> */
