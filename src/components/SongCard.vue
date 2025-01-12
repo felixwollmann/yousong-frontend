@@ -40,17 +40,11 @@ const { isOverDropZone } = useDropZone(dropZoneElement, {
     <p>{{ song.artist }}</p>
     <p>{{ song.genre }}</p>
     <p>{{ song.length }} Sekunden</p>
-    <button
-      @click="emit('delete')"
-      class="absolute bottom-0 right-0 bg-slate-300 px-1 py-0.5 rounded"
-    >
-      Delete
-    </button>
-    <button @click="emit('edit')" class="absolute top-0 right-0 bg-slate-300 px-1 py-0.5 rounded">
-      Edit
-    </button>
-    <button @click="emit('play')" class="absolute bottom-0 left-0 bg-slate-300 px-1 py-0.5 rounded">
-      Play
-    </button>
+
+    <div class="flex absolute bottom-0 right-0 gap-1">
+      <button @click="emit('delete')" class="bg-slate-300 px-1 py-0.5 rounded">Delete</button>
+      <button @click="emit('edit')" class="bg-slate-300 px-1 py-0.5 rounded">Edit</button>
+      <button @click="emit('play')" class="bg-slate-300 px-1 py-0.5 rounded">Play</button>
+    </div>
   </div>
 </template>
