@@ -7,19 +7,31 @@ const route = useRoute()
 const router = useRouter()
 
 const data = ref()
+const selectedGenres = ref(new Set())
+const editingSelectedGenre = ref('')
+
+// v-model="editingSelectedGenre"
+// @keydown.enter="addSelectedGenre(editingSelectedGenre)"
+
+function addSelectedGenre(genre) {
+  selectedGenres.value.add(genre)
+  editingSelectedGenre.value = ''
+}
 
 const searchTerm = ref('')
 
 const pageNum = computed(() => Number(route.query.page) || 0)
 
 const canGoBackwards = computed(() => data.value.page.number > 0)
-const canGoForwards = computed(() => data.value.page.number < data.value.page.totalPages)
+const canGoForwards = computed(() => data.value.page.number + 1 < data.value.page.totalPages)
 const lastPage = computed(() => data.value.page.totalPages - 1)
 
 async function fetchSongs() {
   // console.log(`Fetching for pageNum: ${pageNum.value}`)
   const responseData = await (
-    await fetch(`http://localhost:8080/api/songs?page=${pageNum.value}&q=${searchTerm.value}`)
+    await fetch(
+      `http://localhost:8080/api/songs?page=${pageNum.value}&q=${searchTerm.value}${[...selectedGenres.value].map((v) => `&genres=${v}`).join('')}`
+    )
   ).json()
   data.value = responseData
   // console.log(data.value)
@@ -33,6 +45,7 @@ await fetchSongs()
 
 watch(pageNum, fetchSongs)
 watch(searchTerm, fetchSongs)
+watch(() => [...selectedGenres.value].join(''), fetchSongs)
 watch(searchTerm, () => router.push({ query: { page: undefined } }))
 
 async function deleteSong(song) {
@@ -148,8 +161,28 @@ async function playSong(song) {
       v-model="searchTerm"
       class="w-full focus:border-blue-600 p-1 transition-colors border-blue-200 border-2 rounded outline-none"
     />
-    <div class="flex gap-3 my-2">
-      <span class="px-1.5 py-[1px] text-sm bg-blue-200 rounded-full">Genre</span>
+
+    <div class="flex gap-2 flex-wrap items-center my-2 rounded">
+      <div
+        class="flex gap-0.5 items-center justify-center rounded-full bg-blue-200 pr-1 pl-1.5 text-sm"
+        v-for="genre in selectedGenres"
+        :key="genre"
+      >
+        <span>{{ genre }}</span>
+        <button
+          class="rounded-full size-3 hover:bg-blue-300 flex items-center justify-center"
+          @click="selectedGenres.delete(genre)"
+        >
+          <span>x</span>
+        </button>
+      </div>
+      <input
+        type="text"
+        class="w-32 flex-grow px-1 py-0.5 placeholder:text-gray-500 rounded border-2 border-blue-200 focus:border-blue-600 outline-none bg-transparent transition-colors"
+        placeholder="Genre eg. pop, rock, jazz"
+        v-model="editingSelectedGenre"
+        @keydown.enter="addSelectedGenre(editingSelectedGenre)"
+      />
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <div v-for="song in songs" :key="song.id">
