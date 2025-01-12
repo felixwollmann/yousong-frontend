@@ -8,16 +8,18 @@ const router = useRouter()
 
 const data = ref()
 
+const searchTerm = ref('')
+
 const pageNum = computed(() => Number(route.query.page) || 0)
 
-const canGoBackwards = computed(() => !data.value.first)
-const canGoForwards = computed(() => !data.value.last)
-const lastPage = computed(() => data.value.totalPages - 1)
+const canGoBackwards = computed(() => data.value.page.number > 0)
+const canGoForwards = computed(() => data.value.page.number < data.value.page.totalPages)
+const lastPage = computed(() => data.value.page.totalPages - 1)
 
 async function fetchSongs() {
   // console.log(`Fetching for pageNum: ${pageNum.value}`)
   const responseData = await (
-    await fetch(`http://localhost:8080/api/songs?page=${pageNum.value}`)
+    await fetch(`http://localhost:8080/api/songs?page=${pageNum.value}&q=${searchTerm.value}`)
   ).json()
   data.value = responseData
   // console.log(data.value)
@@ -30,6 +32,8 @@ const songs = computed(() => data.value.content)
 await fetchSongs()
 
 watch(pageNum, fetchSongs)
+watch(searchTerm, fetchSongs)
+watch(searchTerm, () => router.push({ query: { page: undefined } }))
 
 async function deleteSong(song) {
   await fetch(`http://localhost:8080/api/songs/${song.id}`, { method: 'DELETE' })
@@ -48,7 +52,7 @@ async function saveOrEditSong() {
     title: songName.value,
     ...(editingId.value ? { id: editingId.value } : {}),
     ...(artist.value ? { artist: artist.value } : {}),
-    ...(genre.value ? { genre: genre.value } : {}),
+    ...(genres.value.size > 0 ? { genres: [...genres.value] } : {}),
     ...(length.value ? { length: length.value } : {})
   }
 
@@ -74,7 +78,8 @@ async function saveOrEditSong() {
 
   songName.value = ''
   artist.value = ''
-  genre.value = ''
+  genres.value = ''
+  editingGenre.value = ''
   length.value = ''
   editingId.value = null
 
@@ -85,7 +90,7 @@ async function saveOrEditSong() {
 function openDialogForEditing(song) {
   songName.value = song.title
   artist.value = song.artist
-  genre.value = song.genre
+  genres.value = new Set(song.genres)
   length.value = song.length
 
   editingId.value = song.id
@@ -96,8 +101,14 @@ const editingId = ref(null)
 
 const songName = ref('')
 const artist = ref('')
-const genre = ref('')
+const editingGenre = ref('')
+const genres = ref(new Set())
 const length = ref(0)
+
+function addGenre(genre) {
+  genres.value.add(genre)
+  editingGenre.value = ''
+}
 
 import { useSound } from '@vueuse/sound'
 
@@ -132,6 +143,14 @@ async function playSong(song) {
 <template>
   <main class="p-2">
     <h1 class="text-xl">YouSong</h1>
+    <input
+      type="text"
+      v-model="searchTerm"
+      class="w-full focus:border-blue-600 p-1 transition-colors border-blue-200 border-2 rounded outline-none"
+    />
+    <div class="flex gap-3 my-2">
+      <span class="px-1.5 py-[1px] text-sm bg-blue-200 rounded-full">Genre</span>
+    </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <div v-for="song in songs" :key="song.id">
         <SongCard
@@ -143,8 +162,11 @@ async function playSong(song) {
       </div>
     </div>
     <div class="" v-if="songs.length === 0">
-      <p>No songs :(</p>
-      <p>Create one!</p>
+      <template v-if="!searchTerm">
+        <p>No songs :(</p>
+        <p>Create one!</p>
+      </template>
+      <p v-else>No songs can be found. Please adjust your search.</p>
     </div>
     <button class="fixed right-10 bottom-10 bg-blue-200" @click="openDialogForNewSong">
       Add a song
@@ -217,7 +239,29 @@ async function playSong(song) {
       <h2 class="font-bold">Create/Edit song</h2>
       <input type="text" placeholder="Song name" v-model="songName" />
       <input type="text" placeholder="Artist" v-model="artist" />
-      <input type="text" placeholder="Genre" v-model="genre" />
+      <!-- <input type="text" placeholder="Genre" v-model="editingGenre" /> -->
+      <div class="flex gap-2 flex-wrap items-center max-w-64 p-3 bg-slate-100 rounded">
+        <div
+          class="flex gap-0.5 items-center justify-center rounded-full bg-blue-200 pr-1 pl-1.5 text-sm"
+          v-for="genre in genres"
+          :key="genre"
+        >
+          <span>{{ genre }}</span>
+          <button
+            class="rounded-full size-3 hover:bg-blue-300 flex items-center justify-center"
+            @click="genres.delete(genre)"
+          >
+            <span>x</span>
+          </button>
+        </div>
+        <input
+          type="text"
+          class="w-32 flex-grow px-1 py-0.5 placeholder:text-gray-500 rounded border-2 border-blue-200 focus:border-blue-600 outline-none bg-transparent transition-colors"
+          placeholder="Genre eg. pop, rock, jazz"
+          v-model="editingGenre"
+          @keydown.enter="addGenre(editingGenre)"
+        />
+      </div>
       <input type="number" placeholder="Length in Seconds" v-model="length" />
       <button @click="saveOrEditSong()" class="bg-blue-500 text-white rounded">Save</button>
     </div>
