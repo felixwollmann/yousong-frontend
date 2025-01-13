@@ -86,7 +86,7 @@ async function saveOrEditSong() {
 
   songName.value = ''
   artist.value = ''
-  genres.value = ''
+  genres.value = new Set()
   editingGenre.value = ''
   length.value = ''
   editingId.value = null
