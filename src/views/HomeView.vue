@@ -1,6 +1,6 @@
 <script setup>
 import { ref, useTemplateRef, computed, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import SongCard from '@/components/SongCard.vue'
 
 const route = useRoute()
@@ -151,6 +151,7 @@ async function playSong(song) {
 <template>
   <main class="p-2">
     <h1 class="text-xl">YouSong</h1>
+    <RouterLink to=""> </RouterLink>
     <input
       type="text"
       v-model="searchTerm"
