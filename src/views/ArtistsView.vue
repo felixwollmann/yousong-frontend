@@ -3,20 +3,41 @@ import { ref } from 'vue'
 
 const newArtistInput = ref('')
 
-function handleCreateNewArtist() {
-  const artist = newArtistInput.value
+const artists = ref(await (await fetch('http://localhost:8080/api/artists')).json())
+
+async function handleCreateNewArtist() {
+  const name = newArtistInput.value
   newArtistInput.value = ''
-  alert(artist)
-  // tbc
+  artists.value.push(
+    await (
+      await fetch('http://localhost:8080/api/artists', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    ).json()
+  )
 }
 
-function editArtist(id) {
-  const newName = prompt('Enter new name')
-  alert(newName)
+async function editArtist(id) {
+  const name = prompt('Enter new name', artists.value.find((v) => v.id === id).name)
+  await fetch('http://localhost:8080/api/artists/' + id, {
+    method: 'PATCH',
+    body: JSON.stringify({ id, name }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  artists.value = await (await fetch('http://localhost:8080/api/artists')).json()
 }
 
-function deleteArtist(id) {
-  alert(id)
+async function deleteArtist(id) {
+  await fetch('http://localhost:8080/api/artists/' + id, {
+    method: 'DELETE'
+  })
+  artists.value = artists.value.filter((artist) => artist.id !== id)
 }
 </script>
 <template>
@@ -30,16 +51,10 @@ function deleteArtist(id) {
       @keydown.enter.prevent="handleCreateNewArtist"
     />
     <div class="flex flex-col gap-2">
-      <div
-        v-for="artist of Array(5)
-          .fill('')
-          .map((v, idx) => `Person ${Math.random()}`)"
-        :key="artist"
-        class="p-2 rounded bg-gray-100 flex gap-1"
-      >
-        <p class="flex-1">{{ artist }}</p>
-        <button @click="editArtist(1)">🖊</button>
-        <button @click="deleteArtist(1)">🗑</button>
+      <div v-for="artist of artists" :key="artist.id" class="p-2 rounded bg-gray-100 flex gap-1">
+        <p class="flex-1">{{ artist.name }}</p>
+        <button @click="editArtist(artist.id)">🖊</button>
+        <button @click="deleteArtist(artist.id)">🗑</button>
       </div>
     </div>
   </main>

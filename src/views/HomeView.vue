@@ -59,7 +59,7 @@ async function saveOrEditSong() {
   const newSong = {
     title: songName.value,
     ...(editingId.value ? { id: editingId.value } : {}),
-    ...(artist.value ? { artist: artist.value } : {}),
+    ...(artistId.value ? { artist: { id: artistId.value } } : {}),
     ...(genres.value.size > 0 ? { genres: [...genres.value] } : {}),
     ...(length.value ? { length: length.value } : {})
   }
@@ -85,7 +85,7 @@ async function saveOrEditSong() {
   }
 
   songName.value = ''
-  artist.value = ''
+  artistId.value = undefined
   genres.value = new Set()
   editingGenre.value = ''
   length.value = ''
@@ -97,7 +97,7 @@ async function saveOrEditSong() {
 
 function openDialogForEditing(song) {
   songName.value = song.title
-  artist.value = song.artist
+  artistId.value = song.artist.id
   genres.value = new Set(song.genres)
   length.value = song.length
 
@@ -108,7 +108,7 @@ function openDialogForEditing(song) {
 const editingId = ref(null)
 
 const songName = ref('')
-const artist = ref('')
+const artistId = ref(undefined)
 const editingGenre = ref('')
 const genres = ref(new Set())
 const length = ref(0)
@@ -146,6 +146,8 @@ async function playSong(song) {
     console.error(e)
   }
 }
+
+const artists = ref(await (await fetch('http://localhost:8080/api/artists')).json())
 </script>
 
 <template>
@@ -267,7 +269,11 @@ async function playSong(song) {
     <div class="flex flex-col gap-2">
       <h2 class="font-bold">Create/Edit song</h2>
       <input type="text" placeholder="Song name" v-model="songName" />
-      <input type="text" placeholder="Artist" v-model="artist" />
+      <select v-model="artistId">
+        <option :value="artist.id" v-for="artist of artists" :key="artist.id">
+          {{ artist.name }}
+        </option>
+      </select>
       <!-- <input type="text" placeholder="Genre" v-model="editingGenre" /> -->
       <div class="flex gap-2 flex-wrap items-center max-w-64 p-3 bg-slate-100 rounded">
         <div

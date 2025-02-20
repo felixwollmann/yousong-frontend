@@ -37,7 +37,7 @@ const { isOverDropZone } = useDropZone(dropZoneElement, {
     ref="dropZoneElement"
   >
     <h2 class="font-bold">{{ song.title }}</h2>
-    <p>{{ song.artist }}</p>
+    <p>{{ song.artist.name }}</p>
     <p>{{ song.genres.join(', ') }}</p>
     <p>{{ song.length }} Sekunden</p>
 
