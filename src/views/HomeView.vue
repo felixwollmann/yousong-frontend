@@ -51,11 +51,14 @@ async function deleteSong(song) {
 const dialog = useTemplateRef('dialog')
 
 function openDialogForNewSong() {
+  v$.value.$reset()
   dialog.value.showModal()
   editingId.value = null
 }
 
 async function saveOrEditSong() {
+  if (!(await v$.value.$validate())) return
+
   const newSong = {
     title: songName.value,
     ...(editingId.value ? { id: editingId.value } : {}),
@@ -102,6 +105,7 @@ function openDialogForEditing(song) {
   length.value = song.length
 
   editingId.value = song.id
+  v$.value.$reset()
   dialog.value.showModal()
 }
 
@@ -146,6 +150,25 @@ async function playSong(song) {
     console.error(e)
   }
 }
+
+const state = computed(() => {
+  return {
+    songName: songName.value,
+    length: length.value,
+    artistId: artistId.value
+  }
+})
+
+import { required, numeric, maxLength } from '@vuelidate/validators'
+import useVuelidate from '@vuelidate/core'
+
+const rules = {
+  songName: { required },
+  length: { required, numeric },
+  artistId: { required, maxLengthValue: maxLength(50) }
+}
+
+const v$ = useVuelidate(rules, state, { $autoDirty: true })
 
 const artists = ref(await (await fetch('http://localhost:8080/api/artists')).json())
 </script>
@@ -298,6 +321,9 @@ const artists = ref(await (await fetch('http://localhost:8080/api/artists')).jso
         />
       </div>
       <input type="number" placeholder="Length in Seconds" v-model="length" />
+      <p v-for="error of v$.$errors" :key="error.$uid" class="text-red-700">
+        {{ error.$validator }} on property {{ error.$property }} says: {{ error.$message }}
+      </p>
       <button @click="saveOrEditSong()" class="bg-blue-500 text-white rounded">Save</button>
     </div>
   </dialog>
