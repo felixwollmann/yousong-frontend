@@ -64,19 +64,28 @@ async function saveOrEditSong() {
     ...(editingId.value ? { id: editingId.value } : {}),
     ...(artistId.value ? { artist: { id: artistId.value } } : {}),
     ...(genres.value.size > 0 ? { genres: [...genres.value] } : {}),
-    ...(length.value ? { length: length.value } : {})
+    ...(length.value ? { length: length.value } : {}),
+    ...(editingId.value
+      ? { version: songs.value.find((v) => v.id === editingId.value).version }
+      : {})
   }
 
   dialog.value.close()
 
   if (newSong.id) {
-    await fetch(`http://localhost:8080/api/songs/${newSong.id}`, {
+    const response = await fetch(`http://localhost:8080/api/songs/${newSong.id}`, {
       method: 'PATCH',
       body: JSON.stringify(newSong),
       headers: {
         'Content-Type': 'application/json'
       }
     })
+
+    if (!response.ok && response.status === 409) {
+      return alert(
+        "This song has been modified by another user. You're changes haven't been saved."
+      )
+    }
   } else {
     await fetch('http://localhost:8080/api/songs', {
       method: 'POST',
