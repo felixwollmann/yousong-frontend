@@ -15,6 +15,8 @@ function addSelectedGenre(genre) {
   editingSelectedGenre.value = ''
 }
 
+const isLoggedIn = ref(false)
+
 const searchTerm = ref('')
 
 const pageNum = computed(() => Number(route.query.page) || 0)
@@ -44,13 +46,20 @@ watch(() => [...selectedGenres.value].join(''), fetchSongs)
 watch(searchTerm, () => router.push({ query: { page: undefined } }))
 
 async function deleteSong(song) {
-  await fetch(`http://localhost:8080/api/songs/${song.id}`, { method: 'DELETE' })
+  if (!isLoggedIn.value) return alert('Please log in first')
+
+  await fetch(`http://localhost:8080/api/songs/${song.id}`, {
+    method: 'DELETE',
+    credentials: 'include'
+  })
   fetchSongs()
 }
 
 const dialog = useTemplateRef('dialog')
 
 function openDialogForNewSong() {
+  if (!isLoggedIn.value) return alert('Please log in first')
+
   v$.value.$reset()
   dialog.value.showModal()
   editingId.value = null
@@ -78,7 +87,8 @@ async function saveOrEditSong() {
       body: JSON.stringify(newSong),
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
 
     if (!response.ok && response.status === 409) {
@@ -92,7 +102,8 @@ async function saveOrEditSong() {
       body: JSON.stringify(newSong),
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
   }
 
@@ -108,6 +119,8 @@ async function saveOrEditSong() {
 }
 
 function openDialogForEditing(song) {
+  if (!isLoggedIn.value) return alert('Please log in first')
+
   songName.value = song.title
   artistId.value = song.artist.id
   genres.value = new Set(song.genres)
@@ -179,13 +192,54 @@ const rules = {
 
 const v$ = useVuelidate(rules, state, { $autoDirty: true })
 
+async function doLogin() {
+  const username = prompt('Username')
+  const password = prompt('Password')
+
+  const formData = new URLSearchParams()
+
+  formData.append('username', username)
+  formData.append('password', password)
+
+  const response = await fetch('http://localhost:8080/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: formData,
+    credentials: 'include'
+  })
+
+  if (response.ok) {
+    isLoggedIn.value = true
+    alert('Login successful')
+  } else {
+    alert('Login failed')
+  }
+}
+
+async function doLogout() {
+  const response = await fetch('http://localhost:8080/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+
+  if (response.ok) {
+    isLoggedIn.value = false
+    alert('Logged out sucessfully')
+  }
+}
+
 const artists = ref(await (await fetch('http://localhost:8080/api/artists')).json())
 </script>
 
 <template>
   <main class="p-2">
     <h1 class="text-xl">YouSong</h1>
-    <RouterLink to=""> </RouterLink>
+    <button class="bg-fuchsia-500 p-1 text-white" @click="doLogout" v-if="isLoggedIn">
+      Logout
+    </button>
+    <button class="bg-fuchsia-500 p-1 text-white" @click="doLogin" v-else>Login</button>
     <input
       type="text"
       v-model="searchTerm"
